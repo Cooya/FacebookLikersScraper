@@ -8,8 +8,17 @@ const puppeteer = require('puppeteer');
 	const collection = await getDatabaseCollection(config.databaseUrl, config.collectionName);
 	console.log('Collection selected.');
 
-	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true});
+	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true, timeout: 300000});
 	console.log('Browser launched.');
+
+	process.on('uncaughtException', async (err) => {
+		console.error(err);
+		await browser.close();
+	});
+	process.on('unhandledRejection', async (err) => {
+		console.error(err);
+		await browser.close();
+	});
 
 	await logIn(browser, config.cookiesFile);
 
