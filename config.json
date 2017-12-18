@@ -3,5 +3,6 @@
 	"databaseUrl": "mongodb://nico:coya@localhost:27017/db",
 	"collectionName": "facebook.likers",
 	"pageId": "140044059348100",
-	"pageName": "samoens"
+	"pageName": "samoens",
+	"csvFields": ["name", "url", "fbId"]
 }
