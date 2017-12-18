@@ -8,16 +8,20 @@ const puppeteer = require('puppeteer');
 	const collection = await getDatabaseCollection(config.databaseUrl, config.collectionName);
 	console.log('Collection selected.');
 
-	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true, timeout: 300000});
+	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true});
 	console.log('Browser launched.');
 
 	process.on('uncaughtException', async (err) => {
 		console.error(err);
 		await browser.close();
+		console.log('Browser closed. Exiting process...');
+		process.exit(0);
 	});
 	process.on('unhandledRejection', async (err) => {
 		console.error(err);
 		await browser.close();
+		console.log('Browser closed. Exiting process...');
+		process.exit(0);
 	});
 
 	await logIn(browser, config.cookiesFile);
@@ -34,6 +38,7 @@ const puppeteer = require('puppeteer');
 	}
 	
 	await browser.close();
+	console.log('Browser closed. Exiting process...');
 	process.exit(0);
 })();
 
@@ -73,17 +78,21 @@ async function processSearchPage(browser, cookiesFile, targetUrl) {
 	console.log('Going to next search page : ' + targetUrl + '...');
 	await page.goto(targetUrl);
 
-	await page.waitForSelector('#BrowseResultsContainer');
+	await page.waitForSelector('#objects_container');
 	console.log('Page loaded.');
 	await page.waitFor(5000);
 
-	await page.screenshot({path: 'screenshot.png', fullPage: true});
-
-	let profiles = await listProfiles(page);
-
-	const nextPage = await page.evaluate(() => {
-		return document.querySelector('#see_more_pager > a').href;
+	const isEndOfSearch = await page.evaluate(() => {
+		return document.getElementById('objects_container').textContent.indexOf('Fin des résultats') != -1;
 	});
+
+	if(isEndOfSearch) {
+		console.log('End of search detected.');
+		return {nextPage: null, profiles: []};
+	}
+
+	const nextPage = await page.evaluate(() => { return document.querySelector('#see_more_pager > a').href });
+	const profiles = await listProfiles(page);
 
 	await page.close();
 	return {nextPage: nextPage, profiles: profiles};
