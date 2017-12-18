@@ -16,7 +16,7 @@ const puppeteer = require('puppeteer');
 	const timer = Date.now();
 	let pageCounter = 0;
 	let profilesCounter = 0;
-	let returnValue = {nextPage: 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
+	let returnValue = {nextPage: process.argv[2] || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
 	while(returnValue.nextPage) {
 		returnValue = await processSearchPage(browser, config.cookiesFile, returnValue.nextPage);
 		saveProfileUrlsIntoDatabase(collection, config.pageName, returnValue.profiles);
