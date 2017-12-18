@@ -1,6 +1,6 @@
 {
   "name": "facebook-likers-scraper",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Web scraper based on Puppeteer (Google Chrome driver) allowing to retrieve Facebook page likers",
   "main": "scrapProfiles.js",
   "dependencies": {
