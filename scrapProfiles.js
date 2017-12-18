@@ -10,7 +10,7 @@ const puppeteer = require('puppeteer');
 	const collection = await getDatabaseCollection(config.databaseUrl, config.collectionName);
 	console.log('Collection selected.');
 
-	const browser = await puppeteer.launch();
+	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox']});
 	const page = await browser.newPage();
 	//page.on('console', msg => console.log('PAGE LOG:', ...msg.args));
 
