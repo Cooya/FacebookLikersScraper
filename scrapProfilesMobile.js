@@ -24,7 +24,7 @@ const puppeteer = require('puppeteer');
 		process.exit(0);
 	});
 
-	await logIn(browser, config.cookiesFile);
+	await logIn(browser, config.cookiesFile, config.fbLogin, config.fbPassword);
 
 	const timer = Date.now();
 	let pageCounter = 0;
@@ -42,7 +42,7 @@ const puppeteer = require('puppeteer');
 	process.exit(0);
 })();
 
-async function logIn(browser, cookiesFile) {
+async function logIn(browser, cookiesFile, login, password) {
 	const page = await browser.newPage();
 	//page.on('console', msg => console.log('PAGE LOG:', ...msg.args));
 	await loadCookies(cookiesFile, page);
@@ -54,11 +54,11 @@ async function logIn(browser, cookiesFile) {
 
 	if(!await page.$('#userNav')) {
 		console.log('Log in...');
-		await page.evaluate(() => {
-			document.getElementById('email').value = 'francisdupont99@hotmail.fr';
-			document.getElementById('pass').value = 'gratuit1';
+		await page.evaluate((login, password) => {
+			document.getElementById('email').value = login;
+			document.getElementById('pass').value = password;
 			document.querySelector('#loginbutton > input').click();
-		});
+		}, login, password);
 		await page.waitForSelector('#userNav');
 		console.log('Logged in.');
 		await saveCookies(cookiesFile, page);
@@ -163,7 +163,7 @@ function loadCookies(cookiesFile, page) {
 			if(err && err.code != 'ENOENT')
 				reject(err);
 
-			if(!err && data)
+			if(!err && data && data != '' && data != '{}')
 				await page.setCookie(...JSON.parse(data));
 			console.log('Cookies loaded.');
 			resolve();

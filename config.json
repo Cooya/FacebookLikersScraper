@@ -4,5 +4,7 @@
 	"collectionName": "facebook.likers",
 	"pageId": "140044059348100",
 	"pageName": "samoens",
+	"fbLogin": "jasonmaquet99@hotmail.fr",
+	"fbPassword": "gratuit1",
 	"csvFields": ["name", "url", "fbId"]
 }
