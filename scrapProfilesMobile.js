@@ -82,16 +82,17 @@ async function processSearchPage(browser, cookiesFile, targetUrl) {
 	console.log('Page loaded.');
 	await page.waitFor(5000);
 
-	const isEndOfSearch = await page.evaluate(() => {
-		return document.getElementById('objects_container').textContent.indexOf('Fin des résultats') != -1;
+	const nextPage = await page.evaluate(() => { 
+		var nextPageLink = document.querySelector('#see_more_pager > a');
+		if(nextPageLink)
+			return nextPageLink.href;
+		return null;
 	});
-
-	if(isEndOfSearch) {
+	if(!nextPage) {
 		console.log('End of search detected.');
 		return {nextPage: null, profiles: []};
 	}
-
-	const nextPage = await page.evaluate(() => { return document.querySelector('#see_more_pager > a').href });
+	
 	const profiles = await listProfiles(page);
 
 	await page.close();
