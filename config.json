@@ -1,7 +1,8 @@
 {
 	"cookiesFile": "./cookies.json",
-	"databaseUrl": "mongodb://nico:coya@localhost:27017/db",
-	"collectionName": "facebook.likers",
+	"databaseUrl": "mongodb://nico:coya@cooya.fr:27017/db",
+	"profilesCollectionName": "facebook.likers",
+	"cursorsCollectionName": "facebook.cursors",
 	"pageId": "140044059348100",
 	"pageName": "samoens",
 	"fbLogin": "jasonmaquet99@hotmail.fr",

@@ -2,24 +2,32 @@ const fs = require('fs');
 const MongoClient = require('mongodb').MongoClient;
 const puppeteer = require('puppeteer');
 
+let database;
+
 (async () => {
 	const config = require('./config.json');
 
-	const collection = await getDatabaseCollection(config.databaseUrl, config.collectionName);
-	console.log('Collection selected.');
+	const profilesCollection = await getDatabaseCollection(config.databaseUrl, config.profilesCollectionName);
+	console.log('Profiles collection selected.');
+
+	const cursorsCollection = await getDatabaseCollection(config.databaseUrl, config.cursorsCollectionName);
+	console.log('Cursors collection selected.');
+
+	const cursors = await getCursors(cursorsCollection, config.pageName);
+	console.log(cursors.length + ' cursors retrieved from database.');
 
 	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true});
 	console.log('Browser launched.');
 
 	process.on('uncaughtException', async (err) => {
 		console.error(err);
-		await browser.close();
+		//await browser.close();
 		console.log('Browser closed. Exiting process...');
 		process.exit(0);
 	});
 	process.on('unhandledRejection', async (err) => {
 		console.error(err);
-		await browser.close();
+		//await browser.close();
 		console.log('Browser closed. Exiting process...');
 		process.exit(0);
 	});
@@ -27,15 +35,40 @@ const puppeteer = require('puppeteer');
 	await logIn(browser, config.cookiesFile, config.fbLogin, config.fbPassword);
 
 	const timer = Date.now();
-	let pageCounter = 0;
+	let pagesCounter = 0;
 	let profilesCounter = 0;
-	let returnValue = {nextPage: process.argv[2] || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
+	let newProfilesCounter = 0;
+	let profilesInserted;
+	let cursor;
+	let returnValue;
+	if(cursors.length)
+		returnValue = {nextPage: cursors[cursors.length - 1].url};
+	else
+		returnValue = {nextPage: process.argv[2] || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
 	while(returnValue.nextPage) {
 		returnValue = await processSearchPage(browser, config.cookiesFile, returnValue.nextPage);
-		saveProfileUrlsIntoDatabase(collection, config.pageName, returnValue.profiles);
-		console.log(++pageCounter + ' search pages processed.');
-		console.log((profilesCounter += returnValue.profiles.length) + ' profiles processed, ' + millisecondsToTime(Date.now() - timer) + '.');
+		if(returnValue.nextPage) {
+			profilesInserted = await saveProfileUrlsIntoDatabase(profilesCollection, config.pageName, returnValue.profiles);
+			console.log(++pagesCounter + ' search pages processed.');
+			console.log((newProfilesCounter += profilesInserted) + ' new profiles inserted into database.');
+			console.log((profilesCounter += returnValue.profiles.length) + ' profiles processed, ' + millisecondsToTime(Date.now() - timer) + '.');
+			cursor = {page: config.pageName, id: cursors.length, url: returnValue.nextPage};
+			await addCursorToDatabase(cursorsCollection, cursor);
+			cursors.push(cursor);
+		}
 	}
+	console.log('End of first process.');
+
+	while(cursors.length) {
+		cursor = cursors.pop();
+		returnValue = await processSearchPage(browser, config.cookiesFile, cursor.url);
+		profilesInserted = await saveProfileUrlsIntoDatabase(profilesCollection, config.pageName, returnValue.profiles);
+		console.log(++pagesCounter + ' search pages processed.');
+		console.log((newProfilesCounter += profilesInserted) + ' new profiles inserted into database.');
+		console.log((profilesCounter += returnValue.profiles.length) + ' profiles processed, ' + millisecondsToTime(Date.now() - timer) + '.');
+		await removeCursorFromDatabase(cursorsCollection, cursor);
+	}
+	console.log('End of second process.');
 	
 	await browser.close();
 	console.log('Browser closed. Exiting process...');
@@ -105,6 +138,7 @@ function getDatabaseCollection(databaseUrl, collectionName) {
 			if(err)
 				reject(err);
 			else {
+				database = db;
 				db.collection(collectionName, (err, coll) => {
 					if(err)
 						reject(err);
@@ -114,6 +148,25 @@ function getDatabaseCollection(databaseUrl, collectionName) {
 			}
 		});
 	});
+}
+
+function getCursors(cursorsCollection, pageName) {
+	return new Promise((resolve, reject) => {
+		cursorsCollection.find({page: pageName}).sort({'id': 1}).toArray((err, result) => {
+			if(err)
+				reject(err);
+			else
+				resolve(result);
+		});
+	});
+}
+
+function addCursorToDatabase(cursorsCollection, cursor) {
+	return cursorsCollection.insertOne(cursor);
+}
+
+function removeCursorFromDatabase(cursorsCollection, cursor) {
+	return cursorsCollection.deleteOne({page: cursor.page, id: cursor.id});
 }
 
 async function listProfiles(page) {
@@ -143,16 +196,30 @@ async function listProfiles(page) {
 }
 
 function saveProfileUrlsIntoDatabase(collection, page, profiles) {
-	profiles.forEach((profile) => {
-		profile.page = page;
-		collection.updateOne(profile, profile, {upsert: true})
-		.then((result) => {
-			if(result.upsertedCount == 0)
-				console.log('Profile already into database : ' + profile.url);
-			else
-				console.log('Profile added into database successfully : ' + profile.url);
-		}, (err) => {
-			console.error(err);
+	return new Promise((resolve, reject) => {
+		if(!profiles.length)
+			resolve(0);
+
+		let profilesProcessed = 0;
+		let profilesInserted = 0;
+
+		profiles.forEach((profile) => {
+			profile.page = page;
+			collection.updateOne({fbId: profile.fbId, page: page}, profile, {upsert: true})
+			.then((result) => {
+				if(result.upsertedCount == 0)
+					console.log('Profile already into database : ' + profile.url);
+				else {
+					console.log('Profile added into database successfully : ' + profile.url);
+					profilesInserted++;
+				}
+
+				if(++profilesProcessed == profiles.length)
+					resolve(profilesInserted);
+			}, (err) => {
+				console.error(err);
+				reject(err);
+			});
 		});
 	});
 }
