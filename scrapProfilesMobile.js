@@ -16,7 +16,7 @@ let database;
 	const cursors = await getCursors(cursorsCollection, config.pageName);
 	console.log(cursors.length + ' cursors retrieved from database.');
 
-	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: true});
+	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: config.headless});
 	console.log('Browser launched.');
 
 	process.on('uncaughtException', async (err) => {
@@ -82,7 +82,7 @@ async function logIn(browser, cookiesFile, login, password) {
 	await page.setUserAgent('Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0');
 
 	console.log('Going to Facebook...')
-	await page.goto('https://www.facebook.com/');
+	await page.goto('https://www.facebook.com/', {timeout: 60000});
 	console.log('Facebook reached.');
 
 	if(!await page.$('#userNav')) {
