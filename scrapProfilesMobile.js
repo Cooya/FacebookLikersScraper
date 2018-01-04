@@ -6,12 +6,18 @@ let database;
 
 (async () => {
 	const config = require('./config.json');
+	const args = parseArgs();
 
 	const profilesCollection = await getDatabaseCollection(config.databaseUrl, config.profilesCollectionName);
 	console.log('Profiles collection selected.');
 
 	const cursorsCollection = await getDatabaseCollection(config.databaseUrl, config.cursorsCollectionName);
 	console.log('Cursors collection selected.');
+
+	if(args.clearCursors) {
+		await cursorsCollection.deleteMany();
+		console.log('Cursors collection cleared.');
+	}
 
 	const cursors = await getCursors(cursorsCollection, config.pageName);
 	console.log(cursors.length + ' cursors retrieved from database.');
@@ -32,6 +38,9 @@ let database;
 		process.exit(0);
 	});
 
+	if(args.clearCookies)
+		await deleteCookiesFile(config.cookiesFile);
+
 	await logIn(browser, config.cookiesFile, config.fbLogin, config.fbPassword);
 
 	const timer = Date.now();
@@ -44,7 +53,7 @@ let database;
 	if(cursors.length)
 		returnValue = {nextPage: cursors[cursors.length - 1].url};
 	else
-		returnValue = {nextPage: process.argv[2] || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
+		returnValue = {nextPage: args.targetUrl || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
 	while(returnValue.nextPage) {
 		returnValue = await processSearchPage(browser, config.cookiesFile, returnValue.nextPage);
 		if(returnValue.nextPage) {
@@ -230,11 +239,12 @@ function loadCookies(cookiesFile, page) {
 		fs.readFile(cookiesFile, async (err, data) => {
 			if(err && err.code != 'ENOENT')
 				reject(err);
-
-			if(!err && data && data != '' && data != '{}')
-				await page.setCookie(...JSON.parse(data));
-			console.log('Cookies loaded.');
-			resolve();
+			else {
+				if(!err && data && data != '' && data != '{}')
+					await page.setCookie(...JSON.parse(data));
+				console.log('Cookies loaded.');
+				resolve();
+			}
 		});
 	});
 }
@@ -245,10 +255,41 @@ function saveCookies(cookiesFile, page) {
 		fs.writeFile(cookiesFile, JSON.stringify(await page.cookies()), ((err, data) => {
 			if(err)
 				reject(err);
-			console.log('Cookies saved.');
-			resolve();
+			else {
+				console.log('Cookies saved.');
+				resolve();
+			}
 		}));
 	});
+}
+
+function deleteCookiesFile(cookiesFile) {
+	return new Promise(async (resolve, reject) => {
+		fs.unlink(cookiesFile, ((err) => {
+			if(err)
+				reject(err);
+			else {
+				console.log('Cookies file deleted.');
+				resolve();
+			}
+		}));
+	});
+}
+
+function parseArgs() {
+	const args = {};
+	process.argv.forEach((arg, index) => {
+		if(index == 0 || index == 1) // skip nodejs exe and script filename
+			return;
+
+		if(arg == '--clear-cookies')
+			args.clearCookies = true;
+		else if(arg == '--clear-cursors')
+			args.clearCursors = true;
+		else
+			args.targetUrl = arg;
+	});
+	return args;
 }
 
 function millisecondsToTime(ms) {
