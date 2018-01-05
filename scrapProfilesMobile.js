@@ -16,7 +16,16 @@ let database;
 	const cursors = await getCursors(cursorsCollection, config.pageName);
 	console.log(cursors.length + ' cursors retrieved from database.');
 
-	const browser = await puppeteer.launch({args: ['--no-sandbox', '--disable-setuid-sandbox'], headless: config.headless});
+	const browserOptions = {
+		args: [
+			'--no-sandbox',
+			'--disable-setuid-sandbox'
+		],
+		headless: config.headless
+	};
+	if(config.proxy) browserOptions.args.push('--proxy-server=' + config.proxy);
+
+	const browser = await puppeteer.launch(browserOptions);
 	console.log('Browser launched.');
 
 	process.on('uncaughtException', async (err) => {

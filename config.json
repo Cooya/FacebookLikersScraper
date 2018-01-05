@@ -1,5 +1,6 @@
 {
-	"headless": false,
+	"headless": true,
+	"proxy": " 190.121.158.114:8080",
 	"cookiesFile": "./cookies.json",
 	"databaseUrl": "mongodb://nico:coya@cooya.fr:27017/db",
 	"profilesCollectionName": "facebook.likers",
