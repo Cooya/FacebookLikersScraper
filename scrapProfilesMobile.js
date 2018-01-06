@@ -5,8 +5,7 @@ const puppeteer = require('puppeteer');
 let database;
 
 (async () => {
-	const config = require('./config.json');
-	const args = parseArgs();
+	const config = Object.assign(require('./config.json'), parseArgs()); // merge config from config files and args
 
 	const profilesCollection = await getDatabaseCollection(config.databaseUrl, config.profilesCollectionName);
 	console.log('Profiles collection selected.');
@@ -14,7 +13,7 @@ let database;
 	const cursorsCollection = await getDatabaseCollection(config.databaseUrl, config.cursorsCollectionName);
 	console.log('Cursors collection selected.');
 
-	if(args.clearCursors) {
+	if(config.clearCursors) {
 		await cursorsCollection.deleteMany();
 		console.log('Cursors collection cleared.');
 	}
@@ -47,7 +46,7 @@ let database;
 		process.exit(0);
 	});
 
-	if(args.clearCookies)
+	if(config.clearCookies)
 		await deleteCookiesFile(config.cookiesFile);
 
 	await logIn(browser, config.cookiesFile, config.fbLogin, config.fbPassword);
@@ -62,9 +61,9 @@ let database;
 	if(cursors.length)
 		returnValue = {nextPage: cursors[cursors.length - 1].url};
 	else
-		returnValue = {nextPage: args.targetUrl || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
+		returnValue = {nextPage: config.targetUrl || 'https://m.facebook.com/search/str/' + config.pageId + '/likers'};
 	while(returnValue.nextPage) {
-		returnValue = await processSearchPage(browser, config.cookiesFile, returnValue.nextPage);
+		returnValue = await processSearchPage(browser, config.cookiesFile, returnValue.nextPage, config.screenshotFile);
 		if(returnValue.nextPage) {
 			profilesInserted = await saveProfileUrlsIntoDatabase(profilesCollection, config.pageName, returnValue.profiles);
 			console.log(++pagesCounter + ' search pages processed.');
@@ -79,7 +78,7 @@ let database;
 
 	while(cursors.length) {
 		cursor = cursors.pop();
-		returnValue = await processSearchPage(browser, config.cookiesFile, cursor.url);
+		returnValue = await processSearchPage(browser, config.cookiesFile, cursor.url, config.screenshotFile);
 		profilesInserted = await saveProfileUrlsIntoDatabase(profilesCollection, config.pageName, returnValue.profiles);
 		console.log(++pagesCounter + ' search pages processed.');
 		console.log((newProfilesCounter += profilesInserted) + ' new profiles inserted into database.');
@@ -120,7 +119,7 @@ async function logIn(browser, cookiesFile, login, password) {
 	await page.close();
 }
 
-async function processSearchPage(browser, cookiesFile, targetUrl) {
+async function processSearchPage(browser, cookiesFile, targetUrl, screenshotFile) {
 	const page = await browser.newPage();
 	//page.on('console', msg => console.log('PAGE LOG:', ...msg.args));
 	await loadCookies(cookiesFile, page);
@@ -132,6 +131,9 @@ async function processSearchPage(browser, cookiesFile, targetUrl) {
 	await page.waitForSelector('#objects_container');
 	console.log('Page loaded.');
 	await page.waitFor(5000);
+
+	if(screenshotFile)
+		await page.screenshot({path: screenshotFile, fullPage: true});
 
 	const nextPage = await page.evaluate(() => { 
 		var nextPageLink = document.querySelector('#see_more_pager > a');
@@ -274,6 +276,10 @@ function saveCookies(cookiesFile, page) {
 
 function deleteCookiesFile(cookiesFile) {
 	return new Promise(async (resolve, reject) => {
+		if(!fs.existsSync(cookiesFile)) {
+			console.log('No cookies file existing.');
+			return resolve();
+		}
 		fs.unlink(cookiesFile, ((err) => {
 			if(err)
 				reject(err);

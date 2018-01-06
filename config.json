@@ -1,13 +1,14 @@
 {
 	"headless": true,
-	"proxy": " 190.121.158.114:8080",
+	"proxy": "131.221.217.136:3128",
 	"cookiesFile": "./cookies.json",
 	"databaseUrl": "mongodb://nico:coya@cooya.fr:27017/db",
 	"profilesCollectionName": "facebook.likers",
 	"cursorsCollectionName": "facebook.cursors",
 	"pageId": "140044059348100",
 	"pageName": "samoens",
-	"fbLogin": "c5eba669@mozej.com",
+	"fbLogin": "ac430ccb@mozej.com",
 	"fbPassword": "ricardobrazil",
-	"csvFields": ["name", "url", "fbId"]
+	"csvFields": ["name", "url", "fbId"],
+	"screenshotFile": null
 }
