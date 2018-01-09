@@ -49,7 +49,7 @@ let database;
 	if(config.clearCookies)
 		await deleteCookiesFile(config.cookiesFile);
 
-	await logIn(browser, config.cookiesFile, config.fbLogin, config.fbPassword);
+	await logIn(browser, config.cookiesFile, config.fbLogin, config.fbPassword, config.screenshotFile);
 
 	const timer = Date.now();
 	let pagesCounter = 0;
@@ -92,7 +92,7 @@ let database;
 	process.exit(0);
 })();
 
-async function logIn(browser, cookiesFile, login, password) {
+async function logIn(browser, cookiesFile, login, password, screenshotFile) {
 	const page = await browser.newPage();
 	//page.on('console', msg => console.log('PAGE LOG:', ...msg.args));
 	await loadCookies(cookiesFile, page);
@@ -101,6 +101,9 @@ async function logIn(browser, cookiesFile, login, password) {
 	console.log('Going to Facebook...')
 	await page.goto('https://www.facebook.com/', {timeout: 60000});
 	console.log('Facebook reached.');
+
+	if(screenshotFile)
+		await page.screenshot({path: screenshotFile, fullPage: true});
 
 	if(!await page.$('#userNav')) {
 		console.log('Log in...');

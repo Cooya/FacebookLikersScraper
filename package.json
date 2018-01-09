@@ -2,7 +2,7 @@
   "name": "facebook-likers-scraper",
   "version": "0.0.10",
   "description": "Web scraper based on Puppeteer (Google Chrome driver) allowing to retrieve Facebook page likers",
-  "main": "scrapProfiles.js",
+  "main": "scrapProfilesMobile.js",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "json2csv": "^3.11.5",
@@ -13,6 +13,7 @@
   },
   "devDependencies": {},
   "scripts": {
+    "start": "node scrapProfilesMobile.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

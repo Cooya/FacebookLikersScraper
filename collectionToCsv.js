@@ -5,8 +5,8 @@ const MongoClient = require('mongodb').MongoClient;
 (async () => {
 	const config = require('./config.json');
 
-	const collection = await getDatabaseCollection(config.databaseUrl, config.collectionName);
-	console.log('Collection "' + config.collectionName + '" selected.');
+	const collection = await getDatabaseCollection(config.databaseUrl, config.profilesCollectionName);
+	console.log('Collection "' + config.profilesCollectionName + '" selected.');
 
 	const profiles = await collection.find({page: config.pageName}).toArray();
 	console.log('Profiles from page = "' + config.pageName + '" retrieved.');
