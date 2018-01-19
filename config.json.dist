@@ -1,0 +1,15 @@
+{
+	"headless": true,
+	"proxy": "",
+	"cookiesFile": "./cookies.json",
+	"_databaseUrl": "",
+	"databaseUrl": "",
+	"profilesCollectionName": "facebook.likers",
+	"cursorsCollectionName": "facebook.cursors",
+	"pageId": "",
+	"pageName": "",
+	"fbLogin": "",
+	"fbPassword": "",
+	"csvFields": ["name", "url", "fbId"],
+	"screenshotFile": "shot.png"
+}
